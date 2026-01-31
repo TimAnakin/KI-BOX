@@ -1,692 +1,1252 @@
 <!DOCTYPE html>
 <html lang="de">
-<head>
-  <meta charset="UTF-8" />
-  <title>Finder – Prototyp</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    * { box-sizing: border-box; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    body {
-      margin: 0;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: #eaeaea;
-    }
-
-    /* Handy-Rahmen */
-    .phone {
-      width: 360px;
-      height: 720px;
-      background: #fff;
-      border-radius: 40px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
-      overflow: hidden;
-      position: relative;
-    }
-
-    /* Wenn ein Modal offen ist: Background nicht klickbar */
-    .phone.modal-open .card-area,
-    .phone.modal-open .actions,
-    .phone.modal-open .header {
-      pointer-events: none;
-    }
-
-    .phone.modal-open .overlay,
-    .phone.modal-open .likes-view,
-    .phone.modal-open .chats-view,
-    .phone.modal-open .chat-thread-view {
-      pointer-events: auto;
-    }
-
-    .header {
-      height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      border-bottom: 1px solid #eee;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    .header h1 {
-      font-size: 18px;
-      margin: 0;
-      letter-spacing: 0.2px;
-    }
-
-    .menu-btn {
-      cursor: pointer;
-      font-size: 20px;
-      line-height: 1;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    /* Kartenbereich */
-    .card-area {
-      position: relative;
-      height: calc(100% - 200px);
-      padding: 16px;
-    }
-
-    .card {
-      z-index: 1;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
-      -webkit-tap-highlight-color: transparent;
-
-      position: absolute;
-      width: calc(100% - 32px);
-      height: 100%;
-      border-radius: 20px;
-      background-size: cover;
-      background-position: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-      display: flex;
-      align-items: flex-end;
-      padding: 16px;
-      transition: transform 0.28s ease, opacity 0.28s ease;
-      touch-action: none;
-    }
-
-    .card::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: 20px;
-      background: linear-gradient(to top, rgba(0,0,0,0.62), transparent 60%);
-    }
-
-    .card-content {
-      position: relative;
-      color: #fff;
-      z-index: 1;
-    }
-
-    .card-content h2 {
-      margin: 0;
-      font-size: 22px;
-    }
-
-    .card-content p {
-      margin: 6px 0 0;
-      font-size: 14px;
-      opacity: 0.95;
-    }
-
-    /* Buttons */
-    .actions {
-      height: 140px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
-      border-top: 1px solid #f0f0f0;
-      padding: 10px 0;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    .primary-actions {
-      display: flex;
-      gap: 18px;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .action-btn {
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .round {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      font-size: 24px;
-    }
-
-    .pill {
-      width: 220px;
-      height: 40px;
-      border-radius: 999px;
-      font-size: 14px;
-      padding: 0 14px;
-    }
-
-    .dislike { background: #ffdddd; }
-    .like { background: #ddffef; }
-    .info { background: #dde7ff; font-size: 20px; }
-    .book { background: #dde7ff; }
-    .reset { background: #f0f0f0; }
-
-    /* Bottom-sheet overlay (Detail) */
-    .overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      display: none;
-      justify-content: center;
-      align-items: flex-end;
-      z-index: 50;
-    }
-
-    .sheet {
-      background: #fff;
-      width: 100%;
-      border-radius: 24px 24px 0 0;
-      padding: 20px;
-      max-height: 84%;
-      overflow: auto;
-      position: relative;
-      z-index: 51;
-    }
-
-    .sheet h2 { margin-top: 0; }
-
-    .back-btn {
-      margin-bottom: 12px;
-      cursor: pointer;
-      color: #007bff;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    .empty {
-      padding: 14px;
-      border: 1px dashed #ddd;
-      border-radius: 12px;
-      color: #666;
-      background: #fff;
-    }
-
-    /* Likes */
-    .likes-view {
-      z-index: 60;
-      position: absolute;
-      inset: 0;
-      background: #fff;
-      padding: 16px;
-      display: none;
-      flex-direction: column;
-    }
-
-    .likes-view h2 { margin-top: 0; }
-
-    .likes-view ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      overflow: auto;
-      max-height: calc(100% - 60px);
-    }
-
-    .likes-view li {
-      padding: 12px 0;
-      border-bottom: 1px solid #eee;
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .likes-view li span {
-      opacity: 0.75;
-      font-size: 12px;
-      white-space: nowrap;
-    }
-
-    /* Chats list (WhatsApp-like) */
-    .chats-view {
-      z-index: 60;
-      position: absolute;
-      inset: 0;
-      background: #fff;
-      padding: 16px;
-      display: none;
-      flex-direction: column;
-    }
-
-    .chats-view h2 { margin-top: 0; }
-
-    .chat-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      overflow: auto;
-      max-height: calc(100% - 60px);
-    }
-
-    .chat-item {
-      display: flex;
-      gap: 12px;
-      padding: 12px 0;
-      border-bottom: 1px solid #eee;
-      cursor: pointer;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    .avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: #f2f2f2;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      color: #444;
-      flex: 0 0 auto;
-    }
-
-    .chat-meta {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .chat-top {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: baseline;
-    }
-
-    .chat-title {
-      font-weight: 800;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .chat-time {
-      font-size: 12px;
-      opacity: 0.6;
-      white-space: nowrap;
-    }
-
-    .chat-last {
-      font-size: 13px;
-      opacity: 0.75;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-top: 3px;
-    }
-
-    /* Chat thread */
-    .chat-thread-view {
-      z-index: 65;
-      position: absolute;
-      inset: 0;
-      background: #fff;
-      display: none;
-      flex-direction: column;
-    }
-
-    .chat-thread-header {
-      height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 14px;
-      border-bottom: 1px solid #eee;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    .chat-thread-title {
-      font-weight: 900;
-      font-size: 16px;
-      flex: 1;
-      margin: 0 10px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-align: center;
-    }
-
-    .chat-thread-body {
-      flex: 1;
-      padding: 14px;
-      overflow: auto;
-      background: #fafafa;
-    }
-
-        .msg-row {
-      display: flex;
-      align-items: flex-end;
-      gap: 8px;
-      margin: 8px 0;
-    }
-
-    .msg-row.me {
-      justify-content: flex-end;
-    }
-
-    .msg-avatar {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: #f0f0f0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 12px;
-      color: #444;
-      flex: 0 0 auto;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-    }
-
-    .msg-bubble {
-      max-width: 72%;
-      padding: 8px 10px;
-      border-radius: 14px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-      font-size: 13px;
-      line-height: 1.25;
-      white-space: pre-wrap;
-      word-break: break-word;
-      background: #fff;
-    }
-
-    .msg-row.me .msg-bubble {
-      background: #dde7ff;
-      border-top-right-radius: 6px;
-    }
-
-    .msg-row.them .msg-bubble {
-      border-top-left-radius: 6px;
-    }
-
-    .msg-name {
-      font-size: 11px;
-      font-weight: 800;
-      opacity: 0.7;
-      margin-bottom: 4px;
-    }
-
-    .msg-meta {
-      font-size: 10px;
-      opacity: 0.6;
-      margin-top: 6px;
-    }
-
-    .chat-thread-input {
-      display: flex;
-      gap: 10px;
-      padding: 12px;
-      border-top: 1px solid #eee;
-      background: #fff;
-    }
-
-    .chat-thread-input input {
-      flex: 1;
-      height: 40px;
-      border-radius: 999px;
-      border: 1px solid #e6e6e6;
-      padding: 0 14px;
-      font-size: 14px;
-      outline: none;
-    }
-
-    .chat-thread-input button {
-      height: 40px;
-      border-radius: 999px;
-      border: none;
-      padding: 0 16px;
-      cursor: pointer;
-      background: #ddffef;
-      font-weight: 800;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.14);
-    }
-  </style>
-</head>
-<body>
-
-<div class="phone">
-  <div class="header">
-    <span class="menu-btn" onclick="openLikes()" title="Likes anzeigen">⭐</span>
-    <h1>Finder</h1>
-    <span class="menu-btn" onclick="openChats()" title="Chats">💬</span>
-  </div>
-
-  <div class="card-area" id="cardArea"></div>
-
-  <div class="actions">
-    <div class="primary-actions">
-      <button class="action-btn round dislike" onclick="swipe('left')" title="Dislike">❌</button>
-      <button class="action-btn round info" onclick="openDetails()" title="Mehr Infos">ℹ️</button>
-      <button class="action-btn round like" onclick="swipe('right')" title="Like">❤️</button>
-    </div>
-
-    <button class="action-btn pill reset" onclick="resetApp()" title="Debug Reset">🛠 Debug: Reset</button>
-  </div>
-
-  <!-- Detail Overlay -->
-  <div class="overlay" id="detailView">
-    <div class="sheet">
-      <div class="back-btn" onclick="closeDetails()">← Schließen</div>
-      <div id="detailContent"></div>
-    </div>
-  </div>
-
-  <!-- Likes -->
-  <div class="likes-view" id="likesView">
-    <div class="back-btn" onclick="closeLikes()">← Zurück</div>
-    <h2>Deine Likes</h2>
-    <ul id="likesList"></ul>
-  </div>
-
-  <!-- Chats List -->
-  <div class="chats-view" id="chatsView">
-    <div class="back-btn" onclick="closeChats()">← Zurück</div>
-    <h2>Chats</h2>
-    <ul class="chat-list" id="chatList"></ul>
-  </div>
-
-  <!-- Chat Thread -->
-  <div class="chat-thread-view" id="chatThreadView">
-    <div class="chat-thread-header">
-      <span class="menu-btn" onclick="backToChatList()">←</span>
-      <div class="chat-thread-title" id="chatThreadTitle">Chat</div>
-      <span class="menu-btn" onclick="closeChatThread()">✕</span>
-    </div>
-    <div class="chat-thread-body" id="chatThreadBody"></div>
-    <div class="chat-thread-input">
-      <input id="chatInput" type="text" placeholder="Nachricht schreiben…" />
-      <button onclick="sendMessage()">Senden</button>
-    </div>
-  </div>
-</div>
-
-<script>
-  const events = [
-    { id: "jazz", title: "Jazz Konzert", location: "Bochum", image: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=1200&q=60", date: "01.01.2026", time: "19:00", description: "Live-Jazz mit lokalen Musiker:innen. Cozy, intim, kein Dresscode." },
-    { id: "theater", title: "Theater Premiere", location: "Essen", image: "https://images.unsplash.com/photo-1503095396549-807759245b35?auto=format&fit=crop&w=1200&q=60", date: "05.01.2026", time: "20:00", description: "Premiere eines zeitgenössischen Stücks. Diskussion nach der Aufführung." },
-    { id: "kunst", title: "Kunstausstellung", location: "Dortmund", image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=60", date: "08.01.2026", time: "17:30", description: "Mixed Media Ausstellung. Vernissage mit kurzer Einführung." },
-    { id: "slam", title: "Poetry Slam Night", location: "Köln", image: "https://images.unsplash.com/photo-1515169067865-5387ec356754?auto=format&fit=crop&w=1200&q=60", date: "12.01.2026", time: "19:30", description: "Slammer:innen aus der Region. Publikumsvoting am Ende." },
-    { id: "film", title: "Indie Film Screening", location: "Düsseldorf", image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1200&q=60", date: "15.01.2026", time: "21:00", description: "Indie-Film + Q&A. Englisch mit deutschen Untertiteln." },
-    { id: "street", title: "Straßentheater Festival", location: "Münster", image: "https://images.unsplash.com/photo-1508609349937-5ec4ae374ebf?auto=format&fit=crop&w=1200&q=60", date: "20.01.2026", time: "16:00", description: "Open-Air Acts in der Innenstadt. Kostenlos, Hutspende willkommen." },
-    { id: "sound", title: "Elektronische Klangkunst", location: "Berlin", image: "https://images.unsplash.com/photo-1507874457470-272b3c8d8ee2?auto=format&fit=crop&w=1200&q=60", date: "24.01.2026", time: "22:00", description: "Audiovisuelle Performance. Limitierte Plätze." },
-    { id: "lesung", title: "Lesung im Literaturhaus", location: "Hamburg", image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=1200&q=60", date: "28.01.2026", time: "18:30", description: "Autor:innengespräch + Signierstunde." },
-    { id: "impro", title: "Open Air Impro", location: "Bonn", image: "https://images.unsplash.com/photo-1520975682038-6f2a6a8b2f6e?auto=format&fit=crop&w=1200&q=60", date: "02.02.2026", time: "19:00", description: "Improshow unter freiem Himmel. Wetterfeste Kleidung empfohlen." }
-  ];
-
-  let currentIndex = 0;
-  const likes = [];
-
-  const cardArea = document.getElementById('cardArea');
-  const phoneEl = document.querySelector('.phone');
-
-  // chats[eventId] = {
-  //   eventId,
-  //   title,
-  //   participants: [{ id, name }],
-  //   messages: [{ senderId, text, ts }]
-  // }
-  const chats = {};
-  let activeChatId = null;
-
-  function updateModalOpen() {
-    const detailOpen = document.getElementById('detailView').style.display === 'flex';
-    const likesOpen = document.getElementById('likesView').style.display === 'flex';
-    const chatsOpen = document.getElementById('chatsView').style.display === 'flex';
-    const threadOpen = document.getElementById('chatThreadView').style.display === 'flex';
-    phoneEl.classList.toggle('modal-open', detailOpen || likesOpen || chatsOpen || threadOpen);
-  }
-
-  function escapeHtml(str) {
-    return String(str)
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-  }
-
-  function nowTime() {
-    const d = new Date();
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    return `${hh}:${mm}`;
-  }
-
-  function getCurrentEvent() {
-    return currentIndex >= 0 && currentIndex < events.length ? events[currentIndex] : null;
-  }
-
-  function initials(title) {
-    const words = String(title)
-      .trim()
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2);
-    return words.map(w => (w[0] ? w[0].toUpperCase() : '')).join('');
-  }
-
-  function ensureChatForEvent(ev) {
-    if (!ev) return;
-    if (chats[ev.id]) return;
-
-    // Fake Teilnehmer:innen (Gruppenchat)
-    const roster = [
-      { id: 'me', name: 'Du' },
-      { id: 'mira', name: 'Mira' },
-      { id: 'alex', name: 'Alex' },
-      { id: 'sam', name: 'Sam' }
-    ];
-
-    const t = nowTime();
-    const fake = [
-      { senderId: 'mira', text: `Hat noch jemand Bock auf „${ev.title}“? 😊`, ts: t },
-      { senderId: 'alex', text: 'Yes! Ich hab’s auch geliked. Wollen wir zusammen hin?', ts: t },
-      { senderId: 'me', text: 'Ich wäre dabei 🙌 Weiß jemand wie früh man da sein sollte?', ts: t },
-      { senderId: 'sam', text: 'Kommt auf den Andrang an – ich würde 20–30 Min früher da sein.', ts: t }
-    ];
-
-    chats[ev.id] = {
-      eventId: ev.id,
-      title: ev.title,
-      participants: roster,
-      messages: fake
-    };
-  }
-
-  function renderCard() {
-    cardArea.innerHTML = '';
-
-    if (currentIndex >= events.length) {
-      const done = document.createElement('div');
-      done.className = 'empty';
-      done.innerHTML = `
-        <div style="font-weight:800; margin-bottom:6px">Keine weiteren Events 🎭</div>
-        <div style="margin-bottom:10px">Du kannst oben ⭐ deine Likes ansehen oder 💬 deine Chats öffnen.</div>
-        <button class="action-btn pill reset" onclick="resetApp()">Neu starten</button>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Finder – Prototyp</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <style>
+            :root {
+                --bg: #f3f4f6;
+                --cardShadow: 0 14px 40px rgba(0, 0, 0, 0.18);
+                --shadowSoft: 0 10px 26px rgba(0, 0, 0, 0.12);
+                --stroke: rgba(17, 24, 39, 0.1);
+                --text: #111827;
+                --muted: rgba(17, 24, 39, 0.7);
+
+                /* Orange accents */
+                --accent: #ff6a2a;
+                --accent2: #ff8a4d;
+                --accentSoft: rgba(255, 106, 42, 0.14);
+                --accentSoft2: rgba(255, 138, 77, 0.18);
+
+                --surface: #ffffff;
+                --surface2: #fafafa;
+                --dangerSoft: rgba(239, 68, 68, 0.12);
+
+                --radiusPhone: 40px;
+                --radiusCard: 22px;
+                --radiusSheet: 26px;
+            }
+
+            * {
+                box-sizing: border-box;
+                font-family: system-ui, -apple-system, BlinkMacSystemFont,
+                    'Segoe UI', sans-serif;
+            }
+
+            body {
+                margin: 0;
+                height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background: radial-gradient(
+                    1200px 800px at 30% 20%,
+                    #fff,
+                    var(--bg)
+                );
+                color: var(--text);
+            }
+
+            /* Handy-Rahmen */
+            .phone {
+                width: 360px;
+                height: 720px;
+                background: var(--surface);
+                border-radius: var(--radiusPhone);
+                box-shadow: 0 24px 70px rgba(0, 0, 0, 0.22);
+                overflow: hidden;
+                position: relative;
+                border: 1px solid rgba(0, 0, 0, 0.06);
+            }
+
+            /* Wenn ein Modal offen ist: Background nicht klickbar */
+            .phone.modal-open .card-area,
+            .phone.modal-open .actions,
+            .phone.modal-open .header {
+                pointer-events: none;
+            }
+
+            .phone.modal-open .overlay,
+            .phone.modal-open .likes-view,
+            .phone.modal-open .chats-view,
+            .phone.modal-open .chat-thread-view {
+                pointer-events: auto;
+            }
+
+            /* Header */
+            .header {
+                height: 64px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 14px;
+                border-bottom: 1px solid var(--stroke);
+                user-select: none;
+                -webkit-user-select: none;
+                background: radial-gradient(
+                        700px 140px at 20% -20%,
+                        var(--accentSoft2),
+                        transparent 60%
+                    ),
+                    linear-gradient(#fff, #fff);
+            }
+
+            .header h1 {
+                font-size: 16px;
+                margin: 0;
+                letter-spacing: 0.2px;
+                font-weight: 900;
+            }
+
+            .icon-btn {
+                width: 40px;
+                height: 40px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 14px;
+                border: 1px solid var(--stroke);
+                background: rgba(255, 255, 255, 0.9);
+                box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+                cursor: pointer;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            .icon-btn:hover {
+                transform: translateY(-1px);
+            }
+            .icon-btn:active {
+                transform: translateY(0px) scale(0.98);
+            }
+
+            .icon {
+                width: 20px;
+                height: 20px;
+                stroke: var(--text);
+                stroke-width: 2;
+                fill: none;
+            }
+
+            .icon.accent {
+                stroke: var(--accent);
+            }
+
+            /* Kartenbereich */
+            .card-area {
+                position: relative;
+                height: calc(100% - 214px);
+                padding: 16px;
+                background: radial-gradient(
+                        700px 240px at 20% 0%,
+                        var(--accentSoft),
+                        transparent 60%
+                    ),
+                    linear-gradient(var(--surface2), #fff 55%);
+            }
+
+            .card {
+                z-index: 1;
+                user-select: none;
+                -webkit-user-select: none;
+                -webkit-touch-callout: none;
+                -webkit-tap-highlight-color: transparent;
+
+                position: absolute;
+                width: calc(100% - 32px);
+                height: 100%;
+                border-radius: var(--radiusCard);
+                background-size: cover;
+                background-position: center;
+                box-shadow: var(--cardShadow);
+                display: flex;
+                align-items: flex-end;
+                padding: 16px;
+                transition: transform 0.28s ease, opacity 0.28s ease;
+                touch-action: none;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                overflow: hidden;
+            }
+
+            .card::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                border-radius: var(--radiusCard);
+                background: linear-gradient(
+                        to top,
+                        rgba(0, 0, 0, 0.68),
+                        rgba(0, 0, 0, 0.15) 45%,
+                        transparent 65%
+                    ),
+                    radial-gradient(
+                        700px 420px at 0% 100%,
+                        rgba(255, 106, 42, 0.35),
+                        transparent 55%
+                    );
+            }
+
+            .card-content {
+                position: relative;
+                color: #fff;
+                z-index: 1;
+                width: 100%;
+            }
+
+            .badge {
+                display: inline-flex;
+                gap: 6px;
+                align-items: center;
+                padding: 6px 10px;
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.14);
+                border: 1px solid rgba(255, 255, 255, 0.16);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                font-size: 12px;
+                margin-bottom: 10px;
+            }
+
+            .badge-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--accent);
+                box-shadow: 0 0 0 6px rgba(255, 106, 42, 0.18);
+            }
+
+            .card-content h2 {
+                margin: 0;
+                font-size: 22px;
+                line-height: 1.05;
+                font-weight: 900;
+                letter-spacing: 0.2px;
+            }
+
+            .card-content p {
+                margin: 8px 0 0;
+                font-size: 13px;
+                opacity: 0.96;
+                display: inline-flex;
+                gap: 8px;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+
+            .pill-meta {
+                display: inline-flex;
+                gap: 6px;
+                align-items: center;
+                padding: 6px 10px;
+                border-radius: 999px;
+                background: rgba(0, 0, 0, 0.22);
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+            }
+
+            .pill-meta svg {
+                width: 14px;
+                height: 14px;
+                stroke: #fff;
+                opacity: 0.95;
+            }
+
+            /* Actions */
+            .actions {
+                height: 150px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                gap: 10px;
+                border-top: 1px solid var(--stroke);
+                padding: 12px 0;
+                user-select: none;
+                -webkit-user-select: none;
+                background: radial-gradient(
+                        700px 180px at 80% 130%,
+                        var(--accentSoft2),
+                        transparent 55%
+                    ),
+                    linear-gradient(#fff, #fff);
+            }
+
+            .primary-actions {
+                display: flex;
+                gap: 16px;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .action-btn {
+                border: none;
+                cursor: pointer;
+                box-shadow: var(--shadowSoft);
+                user-select: none;
+                -webkit-user-select: none;
+                -webkit-tap-highlight-color: transparent;
+                transition: transform 0.12s ease;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .action-btn:hover {
+                transform: translateY(-1px);
+            }
+            .action-btn:active {
+                transform: translateY(0px) scale(0.98);
+            }
+
+            .round {
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+            }
+
+            .pill {
+                width: 240px;
+                height: 42px;
+                border-radius: 999px;
+                font-size: 14px;
+                padding: 0 14px;
+                font-weight: 800;
+            }
+
+            .dislike {
+                background: var(--dangerSoft);
+                border: 1px solid rgba(239, 68, 68, 0.18);
+            }
+            .like {
+                background: linear-gradient(
+                    135deg,
+                    var(--accent),
+                    var(--accent2)
+                );
+                color: #fff;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .info {
+                background: var(--accentSoft);
+                border: 1px solid rgba(255, 106, 42, 0.2);
+            }
+            .book {
+                background: linear-gradient(
+                    135deg,
+                    var(--accent),
+                    var(--accent2)
+                );
+                color: #fff;
+                border: none;
+            }
+            .reset {
+                background: #f3f4f6;
+                border: 1px solid var(--stroke);
+                color: var(--text);
+            }
+
+            .action-btn svg {
+                width: 24px;
+                height: 24px;
+                stroke: var(--text);
+                stroke-width: 2;
+                fill: none;
+            }
+            .action-btn.like svg {
+                stroke: #fff;
+            }
+            .action-btn.book svg {
+                stroke: #fff;
+            }
+            .action-btn.dislike svg {
+                stroke: #ef4444;
+            }
+            .action-btn.info svg {
+                stroke: var(--accent);
+            }
+
+            /* Bottom-sheet overlay (Detail) */
+            .overlay {
+                position: absolute;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.58);
+                display: none;
+                justify-content: center;
+                align-items: flex-end;
+                z-index: 50;
+                backdrop-filter: blur(4px);
+                -webkit-backdrop-filter: blur(4px);
+            }
+
+            .sheet {
+                background: #fff;
+                width: 100%;
+                border-radius: var(--radiusSheet) var(--radiusSheet) 0 0;
+                padding: 18px 18px 20px;
+                max-height: 84%;
+                overflow: auto;
+                position: relative;
+                z-index: 51;
+                border: 1px solid rgba(0, 0, 0, 0.06);
+                box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.24);
+            }
+
+            .sheet h2 {
+                margin: 0 0 10px;
+            }
+
+            .back-btn {
+                margin-bottom: 12px;
+                cursor: pointer;
+                color: var(--accent);
+                user-select: none;
+                -webkit-user-select: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: 800;
+            }
+
+            .back-btn svg {
+                width: 18px;
+                height: 18px;
+                stroke: var(--accent);
+                stroke-width: 2;
+                fill: none;
+            }
+
+            .empty {
+                padding: 14px;
+                border: 1px dashed rgba(17, 24, 39, 0.18);
+                border-radius: 14px;
+                color: rgba(17, 24, 39, 0.72);
+                background: rgba(255, 255, 255, 0.8);
+            }
+
+            /* Likes */
+            .likes-view {
+                z-index: 60;
+                position: absolute;
+                inset: 0;
+                background: #fff;
+                padding: 16px;
+                display: none;
+                flex-direction: column;
+            }
+
+            .likes-view h2 {
+                margin-top: 8px;
+                margin-bottom: 10px;
+            }
+
+            .likes-view ul {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                overflow: auto;
+                max-height: calc(100% - 72px);
+                border-top: 1px solid var(--stroke);
+            }
+
+            .likes-view li {
+                padding: 12px 0;
+                border-bottom: 1px solid var(--stroke);
+                display: flex;
+                justify-content: space-between;
+                gap: 10px;
+            }
+
+            .likes-view li span {
+                opacity: 0.7;
+                font-size: 12px;
+                white-space: nowrap;
+            }
+
+            /* Chats list */
+            .chats-view {
+                z-index: 60;
+                position: absolute;
+                inset: 0;
+                background: #fff;
+                padding: 16px;
+                display: none;
+                flex-direction: column;
+            }
+
+            .chats-view h2 {
+                margin-top: 8px;
+                margin-bottom: 10px;
+            }
+
+            .chat-list {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                overflow: auto;
+                max-height: calc(100% - 72px);
+                border-top: 1px solid var(--stroke);
+            }
+
+            .chat-item {
+                display: flex;
+                gap: 12px;
+                padding: 12px 0;
+                border-bottom: 1px solid var(--stroke);
+                cursor: pointer;
+                user-select: none;
+                -webkit-user-select: none;
+            }
+
+            .avatar {
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                background: radial-gradient(
+                        16px 16px at 30% 30%,
+                        rgba(255, 255, 255, 0.9),
+                        rgba(255, 255, 255, 0)
+                    ),
+                    linear-gradient(135deg, var(--accent), var(--accent2));
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 900;
+                color: #fff;
+                flex: 0 0 auto;
+                box-shadow: 0 10px 24px rgba(255, 106, 42, 0.24);
+            }
+
+            .chat-meta {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .chat-top {
+                display: flex;
+                justify-content: space-between;
+                gap: 12px;
+                align-items: baseline;
+            }
+
+            .chat-title {
+                font-weight: 900;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .chat-time {
+                font-size: 12px;
+                opacity: 0.6;
+                white-space: nowrap;
+            }
+
+            .chat-last {
+                font-size: 13px;
+                opacity: 0.72;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                margin-top: 3px;
+            }
+
+            /* Chat thread */
+            .chat-thread-view {
+                z-index: 65;
+                position: absolute;
+                inset: 0;
+                background: #fff;
+                display: none;
+                flex-direction: column;
+            }
+
+            .chat-thread-header {
+                height: 64px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 12px;
+                border-bottom: 1px solid var(--stroke);
+                background: radial-gradient(
+                        700px 140px at 20% -20%,
+                        var(--accentSoft2),
+                        transparent 60%
+                    ),
+                    linear-gradient(#fff, #fff);
+                user-select: none;
+                -webkit-user-select: none;
+            }
+
+            .chat-thread-title {
+                font-weight: 900;
+                font-size: 14px;
+                flex: 1;
+                margin: 0 10px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                text-align: center;
+            }
+
+            .chat-thread-body {
+                flex: 1;
+                padding: 14px;
+                overflow: auto;
+                background: radial-gradient(
+                        700px 300px at 10% 0%,
+                        var(--accentSoft),
+                        transparent 58%
+                    ),
+                    #f8fafc;
+            }
+
+            .msg-row {
+                display: flex;
+                align-items: flex-end;
+                gap: 8px;
+                margin: 10px 0;
+            }
+
+            .msg-row.me {
+                justify-content: flex-end;
+            }
+
+            .msg-avatar {
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                background: radial-gradient(
+                        14px 14px at 30% 30%,
+                        rgba(255, 255, 255, 0.95),
+                        rgba(255, 255, 255, 0)
+                    ),
+                    linear-gradient(135deg, var(--accent), var(--accent2));
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 900;
+                font-size: 12px;
+                color: #fff;
+                flex: 0 0 auto;
+                box-shadow: 0 8px 18px rgba(255, 106, 42, 0.18);
+                border: 1px solid rgba(255, 255, 255, 0.25);
+            }
+
+            .msg-bubble {
+                max-width: 72%;
+                padding: 7px 9px;
+                border-radius: 16px;
+                box-shadow: 0 10px 22px rgba(0, 0, 0, 0.07);
+                font-size: 12.5px;
+
+                background: #fff;
+                border: 1px solid rgba(17, 24, 39, 0.06);
+                display: inline-block;
+                width: fit-content;
+            }
+
+            .msg-row.me .msg-bubble {
+                background: linear-gradient(
+                    135deg,
+                    rgba(255, 106, 42, 0.18),
+                    rgba(255, 138, 77, 0.22)
+                );
+                border: 1px solid rgba(255, 106, 42, 0.22);
+                border-top-right-radius: 8px;
+            }
+
+            .msg-row.them .msg-bubble {
+                border-top-left-radius: 8px;
+            }
+
+            .msg-name {
+                margin-bottom: 2px;
+                font-size: 10px;
+                font-weight: 900;
+                opacity: 0.72;
+            }
+
+            .msg-meta {
+                opacity: 0.6;
+                margin-top: 2px;
+                font-size: 10px;
+            }
+
+            .chat-thread-input {
+                display: flex;
+                gap: 10px;
+                padding: 12px;
+                border-top: 1px solid var(--stroke);
+                background: #fff;
+            }
+
+            .chat-thread-input input {
+                flex: 1;
+                height: 42px;
+                border-radius: 999px;
+                border: 1px solid rgba(17, 24, 39, 0.12);
+                padding: 0 14px;
+                font-size: 14px;
+                outline: none;
+                background: #fff;
+            }
+
+            .chat-thread-input input:focus {
+                border-color: rgba(255, 106, 42, 0.45);
+                box-shadow: 0 0 0 4px rgba(255, 106, 42, 0.14);
+            }
+
+            .chat-thread-input button {
+                height: 42px;
+                border-radius: 999px;
+                border: none;
+                padding: 0 14px;
+                cursor: pointer;
+                color: #fff;
+                font-weight: 900;
+                background: linear-gradient(
+                    135deg,
+                    var(--accent),
+                    var(--accent2)
+                );
+                box-shadow: 0 12px 24px rgba(255, 106, 42, 0.2);
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .chat-thread-input button svg {
+                width: 18px;
+                height: 18px;
+                stroke: #fff;
+                stroke-width: 2;
+                fill: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="phone">
+            <div class="header">
+                <button
+                    class="icon-btn"
+                    onclick="openLikes()"
+                    title="Likes anzeigen"
+                    aria-label="Likes"
+                >
+                    <!-- star -->
+                    <svg
+                        class="icon accent"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.77 5.82 22 7 14.14l-5-4.87 6.91-1.01L12 2z"
+                        ></path>
+                    </svg>
+                </button>
+
+                <h1>Finder</h1>
+
+                <button
+                    class="icon-btn"
+                    onclick="openChats()"
+                    title="Chats"
+                    aria-label="Chats"
+                >
+                    <!-- message-circle -->
+                    <svg
+                        class="icon accent"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H6l-3 3v-6.5A8.5 8.5 0 1 1 21 11.5z"
+                        ></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="card-area" id="cardArea"></div>
+
+            <div class="actions">
+                <div class="primary-actions">
+                    <button
+                        class="action-btn round dislike"
+                        onclick="swipe('left')"
+                        title="Dislike"
+                        aria-label="Dislike"
+                    >
+                        <!-- x -->
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M18 6L6 18"></path>
+                            <path d="M6 6l12 12"></path>
+                        </svg>
+                    </button>
+
+                    <button
+                        class="action-btn round info"
+                        onclick="openDetails()"
+                        title="Mehr Infos"
+                        aria-label="Mehr Infos"
+                    >
+                        <!-- info -->
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 17v-6"></path>
+                            <path d="M12 8h.01"></path>
+                            <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                    </button>
+
+                    <button
+                        class="action-btn round like"
+                        onclick="swipe('right')"
+                        title="Like"
+                        aria-label="Like"
+                    >
+                        <!-- heart -->
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path
+                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"
+                            ></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <button
+                    class="action-btn pill reset"
+                    onclick="resetApp()"
+                    title="Debug Reset"
+                >
+                    <!-- refresh-cw -->
+                    <svg
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        style="width: 18px; height: 18px; margin-right: 8px"
+                    >
+                        <path d="M21 12a9 9 0 1 1-2.64-6.36"></path>
+                        <path d="M21 3v6h-6"></path>
+                    </svg>
+                    Debug: Reset
+                </button>
+            </div>
+
+            <!-- Detail Overlay -->
+            <div class="overlay" id="detailView">
+                <div class="sheet">
+                    <div class="back-btn" onclick="closeDetails()">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M15 18l-6-6 6-6"></path>
+                        </svg>
+                        Schließen
+                    </div>
+                    <div id="detailContent"></div>
+                </div>
+            </div>
+
+            <!-- Likes -->
+            <div class="likes-view" id="likesView">
+                <div class="back-btn" onclick="closeLikes()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M15 18l-6-6 6-6"></path>
+                    </svg>
+                    Zurück
+                </div>
+                <h2>Deine Likes</h2>
+                <ul id="likesList"></ul>
+            </div>
+
+            <!-- Chats List -->
+            <div class="chats-view" id="chatsView">
+                <div class="back-btn" onclick="closeChats()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M15 18l-6-6 6-6"></path>
+                    </svg>
+                    Zurück
+                </div>
+                <h2>Chats</h2>
+                <ul class="chat-list" id="chatList"></ul>
+            </div>
+
+            <!-- Chat Thread -->
+            <div class="chat-thread-view" id="chatThreadView">
+                <div class="chat-thread-header">
+                    <button
+                        class="icon-btn"
+                        onclick="backToChatList()"
+                        aria-label="Zurück"
+                    >
+                        <svg
+                            class="icon accent"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                        >
+                            <path d="M15 18l-6-6 6-6"></path>
+                        </svg>
+                    </button>
+
+                    <div class="chat-thread-title" id="chatThreadTitle">
+                        Chat
+                    </div>
+
+                    <button
+                        class="icon-btn"
+                        onclick="closeChatThread()"
+                        aria-label="Schließen"
+                    >
+                        <svg
+                            class="icon accent"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                        >
+                            <path d="M18 6L6 18"></path>
+                            <path d="M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="chat-thread-body" id="chatThreadBody"></div>
+
+                <div class="chat-thread-input">
+                    <input
+                        id="chatInput"
+                        type="text"
+                        placeholder="Nachricht schreiben…"
+                    />
+                    <button onclick="sendMessage()">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M22 2L11 13"></path>
+                            <path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
+                        </svg>
+                        Senden
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const events = [
+                {
+                    id: 'jazz',
+                    title: 'Jazz Konzert',
+                    location: 'Bochum',
+                    image: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=1200&q=60',
+                    date: '01.01.2026',
+                    time: '19:00',
+                    description:
+                        'Live-Jazz mit lokalen Musiker:innen. Cozy, intim, kein Dresscode.',
+                },
+                {
+                    id: 'theater',
+                    title: 'Theater Premiere',
+                    location: 'Essen',
+                    image: 'https://images.unsplash.com/photo-1503095396549-807759245b35?auto=format&fit=crop&w=1200&q=60',
+                    date: '05.01.2026',
+                    time: '20:00',
+                    description:
+                        'Premiere eines zeitgenössischen Stücks. Diskussion nach der Aufführung.',
+                },
+                {
+                    id: 'kunst',
+                    title: 'Kunstausstellung',
+                    location: 'Dortmund',
+                    image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=60',
+                    date: '08.01.2026',
+                    time: '17:30',
+                    description:
+                        'Mixed Media Ausstellung. Vernissage mit kurzer Einführung.',
+                },
+                {
+                    id: 'film',
+                    title: 'Indie Film Screening',
+                    location: 'Düsseldorf',
+                    image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1200&q=60',
+                    date: '15.01.2026',
+                    time: '21:00',
+                    description:
+                        'Indie-Film + Q&A. Englisch mit deutschen Untertiteln.',
+                },
+                {
+                    id: 'street',
+                    title: 'Straßentheater Festival',
+                    location: 'Münster',
+                    image: 'https://images.unsplash.com/photo-1508609349937-5ec4ae374ebf?auto=format&fit=crop&w=1200&q=60',
+                    date: '20.01.2026',
+                    time: '16:00',
+                    description:
+                        'Open-Air Acts in der Innenstadt. Kostenlos, Hutspende willkommen.',
+                },
+                {
+                    id: 'sound',
+                    title: 'Elektronische Klangkunst',
+                    location: 'Berlin',
+                    image: 'https://images.unsplash.com/photo-1507874457470-272b3c8d8ee2?auto=format&fit=crop&w=1200&q=60',
+                    date: '24.01.2026',
+                    time: '22:00',
+                    description:
+                        'Audiovisuelle Performance. Limitierte Plätze.',
+                },
+                {
+                    id: 'lesung',
+                    title: 'Lesung im Literaturhaus',
+                    location: 'Hamburg',
+                    image: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=1200&q=60',
+                    date: '28.01.2026',
+                    time: '18:30',
+                    description: 'Autor:innengespräch + Signierstunde.',
+                },
+            ];
+
+            let currentIndex = 0;
+            const likes = [];
+
+            const cardArea = document.getElementById('cardArea');
+            const phoneEl = document.querySelector('.phone');
+
+            // chats[eventId] = {
+            //   eventId,
+            //   title,
+            //   participants: [{ id, name }],
+            //   messages: [{ senderId, text, ts }]
+            // }
+            const chats = {};
+            let activeChatId = null;
+
+            function updateModalOpen() {
+                const detailOpen =
+                    document.getElementById('detailView').style.display ===
+                    'flex';
+                const likesOpen =
+                    document.getElementById('likesView').style.display ===
+                    'flex';
+                const chatsOpen =
+                    document.getElementById('chatsView').style.display ===
+                    'flex';
+                const threadOpen =
+                    document.getElementById('chatThreadView').style.display ===
+                    'flex';
+                phoneEl.classList.toggle(
+                    'modal-open',
+                    detailOpen || likesOpen || chatsOpen || threadOpen,
+                );
+            }
+
+            function escapeHtml(str) {
+                return String(str)
+                    .replaceAll('&', '&amp;')
+                    .replaceAll('<', '&lt;')
+                    .replaceAll('>', '&gt;')
+                    .replaceAll('"', '&quot;')
+                    .replaceAll("'", '&#39;');
+            }
+
+            function nowTime() {
+                const d = new Date();
+                const hh = String(d.getHours()).padStart(2, '0');
+                const mm = String(d.getMinutes()).padStart(2, '0');
+                return `${hh}:${mm}`;
+            }
+
+            function getCurrentEvent() {
+                return currentIndex >= 0 && currentIndex < events.length
+                    ? events[currentIndex]
+                    : null;
+            }
+
+            function initials(title) {
+                const words = String(title)
+                    .trim()
+                    .split(' ')
+                    .filter(Boolean)
+                    .slice(0, 2);
+                return words
+                    .map((w) => (w[0] ? w[0].toUpperCase() : ''))
+                    .join('');
+            }
+
+            function ensureChatForEvent(ev) {
+                if (!ev) return;
+                if (chats[ev.id]) return;
+
+                // Fake Teilnehmer:innen (Gruppenchat)
+                const roster = [
+                    {id: 'me', name: 'Du'},
+                    {id: 'mira', name: 'Mira'},
+                    {id: 'alex', name: 'Alex'},
+                    {id: 'sam', name: 'Sam'},
+                ];
+
+                const t = nowTime();
+                const fake = [
+                    {
+                        senderId: 'mira',
+                        text: `Hat noch jemand Bock auf „${ev.title}“? 😊`,
+                        ts: t,
+                    },
+                    {
+                        senderId: 'alex',
+                        text: 'Yes! Ich hab’s auch geliked. Wollen wir zusammen hin?',
+                        ts: t,
+                    },
+                    {
+                        senderId: 'me',
+                        text: 'Ich wäre dabei 🙌 Weiß jemand wie früh man da sein sollte?',
+                        ts: t,
+                    },
+                    {
+                        senderId: 'sam',
+                        text: 'Kommt auf den Andrang an – ich würde 20–30 Min früher da sein.',
+                        ts: t,
+                    },
+                ];
+
+                chats[ev.id] = {
+                    eventId: ev.id,
+                    title: ev.title,
+                    participants: roster,
+                    messages: fake,
+                };
+            }
+
+            function renderCard() {
+                cardArea.innerHTML = '';
+
+                if (currentIndex >= events.length) {
+                    const done = document.createElement('div');
+                    done.className = 'empty';
+                    done.innerHTML = `
+        <div style="font-weight:900; margin-bottom:6px">Keine weiteren Events</div>
+        <div style="margin-bottom:10px; opacity:.85">Du kannst oben deine Likes ansehen oder deine Chats öffnen.</div>
+        <button class="action-btn pill reset" onclick="resetApp()" style="justify-content:center;">Neu starten</button>
       `;
-      cardArea.appendChild(done);
-      return;
-    }
+                    cardArea.appendChild(done);
+                    return;
+                }
 
-    const event = events[currentIndex];
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.style.backgroundImage = `url(${event.image})`;
+                const event = events[currentIndex];
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.backgroundImage = `url(${event.image})`;
 
-    card.innerHTML = `
+                card.innerHTML = `
       <div class="card-content">
+        <div class="badge"><span class="badge-dot"></span> Empfehlung</div>
         <h2>${escapeHtml(event.title)}</h2>
-        <p>📍 ${escapeHtml(event.location)} • ${escapeHtml(event.date)} • ${escapeHtml(event.time)}</p>
+        <p>
+          <span class="pill-meta">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            ${escapeHtml(event.location)}
+          </span>
+          <span class="pill-meta">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+              <path d="M16 2v4"></path>
+              <path d="M8 2v4"></path>
+              <path d="M3 10h18"></path>
+            </svg>
+            ${escapeHtml(event.date)}
+          </span>
+          <span class="pill-meta">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 6v6l4 2"></path>
+            </svg>
+            ${escapeHtml(event.time)}
+          </span>
+        </p>
       </div>
     `;
 
-    cardArea.appendChild(card);
-  }
+                cardArea.appendChild(card);
+            }
 
-  function swipe(direction) {
-    const card = document.querySelector('.card');
-    if (!card) return;
-    if (currentIndex >= events.length) return;
+            function swipe(direction) {
+                const card = document.querySelector('.card');
+                if (!card) return;
+                if (currentIndex >= events.length) return;
 
-    const ev = events[currentIndex];
+                const ev = events[currentIndex];
 
-    if (direction === 'right') {
-      likes.push(ev);
-      ensureChatForEvent(ev);
-    }
+                if (direction === 'right') {
+                    likes.push(ev);
+                    ensureChatForEvent(ev);
+                }
 
-    card.style.transform = direction === 'right'
-      ? 'translateX(420px) rotate(18deg)'
-      : 'translateX(-420px) rotate(-18deg)';
+                card.style.transform =
+                    direction === 'right'
+                        ? 'translateX(420px) rotate(18deg)'
+                        : 'translateX(-420px) rotate(-18deg)';
 
-    card.style.opacity = '0';
+                card.style.opacity = '0';
 
-    window.setTimeout(() => {
-      currentIndex++;
-      renderCard();
-    }, 280);
-  }
+                window.setTimeout(() => {
+                    currentIndex++;
+                    renderCard();
+                }, 280);
+            }
 
-  function openDetails() {
-    const event = getCurrentEvent();
-    if (!event) return;
+            function openDetails() {
+                const event = getCurrentEvent();
+                if (!event) return;
 
-    const content = document.getElementById('detailContent');
-    content.innerHTML = `
-      <h2>${escapeHtml(event.title)}</h2>
-      <p><strong>Ort:</strong> ${escapeHtml(event.location)}</p>
-      <p><strong>Datum:</strong> ${escapeHtml(event.date)}</p>
-      <p><strong>Uhrzeit:</strong> ${escapeHtml(event.time)}</p>
-      <p style="margin-top:12px"><strong>Info:</strong> ${escapeHtml(event.description || '—')}</p>
-      <p style="margin-top:12px">Dies ist eine <em>Dummy-Detailansicht</em>. Später können hier Tickets, Künstler:innen, Preise oder Maps integriert werden.</p>
-      <button class="action-btn pill book" style="margin-top:16px" onclick="bookEvent()">📅 Termin buchen</button>
+                const content = document.getElementById('detailContent');
+                content.innerHTML = `
+      <h2 style="margin-bottom:10px">${escapeHtml(event.title)}</h2>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+        <div style="padding:10px 12px; border-radius:14px; border:1px solid rgba(17,24,39,0.10); background:#fff;">
+          <div style="font-weight:900; font-size:12px; opacity:.7; margin-bottom:4px;">Ort</div>
+          <div style="font-weight:900;">${escapeHtml(event.location)}</div>
+        </div>
+        <div style="padding:10px 12px; border-radius:14px; border:1px solid rgba(17,24,39,0.10); background:#fff;">
+          <div style="font-weight:900; font-size:12px; opacity:.7; margin-bottom:4px;">Datum</div>
+          <div style="font-weight:900;">${escapeHtml(event.date)}</div>
+        </div>
+        <div style="padding:10px 12px; border-radius:14px; border:1px solid rgba(17,24,39,0.10); background:#fff;">
+          <div style="font-weight:900; font-size:12px; opacity:.7; margin-bottom:4px;">Uhrzeit</div>
+          <div style="font-weight:900;">${escapeHtml(event.time)}</div>
+        </div>
+      </div>
+
+      <div style="padding:12px; border-radius:16px; background: rgba(255,106,42,0.08); border:1px solid rgba(255,106,42,0.16);">
+        <div style="font-weight:900; margin-bottom:6px;">Info</div>
+        <div style="opacity:.85; line-height:1.35">${escapeHtml(
+            event.description || '—',
+        )}</div>
+      </div>
+
+      <div style="margin-top:12px; opacity:.75; font-size:13px;">
+        Dummy-Detailansicht – später können hier Tickets, Künstler:innen, Preise oder Maps integriert werden.
+      </div>
+
+      <button class="action-btn pill book" style="margin-top:16px; justify-content:center;" onclick="bookEvent()">
+        <svg viewBox="0 0 24 24" aria-hidden="true" style="width:18px;height:18px;">
+          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+          <path d="M16 2v4"></path>
+          <path d="M8 2v4"></path>
+          <path d="M3 10h18"></path>
+        </svg>
+        Termin buchen
+      </button>
     `;
 
-    document.getElementById('detailView').style.display = 'flex';
-    updateModalOpen();
-  }
+                document.getElementById('detailView').style.display = 'flex';
+                updateModalOpen();
+            }
 
-  function closeDetails(silent = false) {
-    document.getElementById('detailView').style.display = 'none';
-    updateModalOpen();
-    if (!silent) console.info('Details closed');
-  }
+            function closeDetails(silent = false) {
+                document.getElementById('detailView').style.display = 'none';
+                updateModalOpen();
+                if (!silent) console.info('Details closed');
+            }
 
-  function bookEvent() {
-    const event = getCurrentEvent();
-    if (!event) return;
+            function bookEvent() {
+                const event = getCurrentEvent();
+                if (!event) return;
 
-    alert(`📅 Dummy-Buchung
+                alert(`Dummy-Buchung
 
 Event: ${event.title}
 Ort: ${event.location}
@@ -694,94 +1254,103 @@ Datum: ${event.date}
 Uhrzeit: ${event.time}
 
 Status: (noch nicht implementiert)`);
-  }
+            }
 
-  function resetApp() {
-    currentIndex = 0;
-    likes.length = 0;
+            function resetApp() {
+                currentIndex = 0;
+                likes.length = 0;
 
-    for (const k of Object.keys(chats)) delete chats[k];
-    activeChatId = null;
+                for (const k of Object.keys(chats)) delete chats[k];
+                activeChatId = null;
 
-    closeLikes(true);
-    closeDetails(true);
-    closeChats(true);
-    closeChatThread(true);
+                closeLikes(true);
+                closeDetails(true);
+                closeChats(true);
+                closeChatThread(true);
 
-    updateModalOpen();
-    renderCard();
-    console.clear();
-    console.info('Reset done');
-  }
+                updateModalOpen();
+                renderCard();
+                console.clear();
+                console.info('Reset done');
+            }
 
-  // ===== Likes =====
-  function openLikes() {
-    const view = document.getElementById('likesView');
-    view.style.display = 'flex';
-    updateModalOpen();
+            // ===== Likes =====
+            function openLikes() {
+                const view = document.getElementById('likesView');
+                view.style.display = 'flex';
+                updateModalOpen();
 
-    const list = document.getElementById('likesList');
-    list.innerHTML = '';
+                const list = document.getElementById('likesList');
+                list.innerHTML = '';
 
-    if (likes.length === 0) {
-      const li = document.createElement('li');
-      li.innerHTML = '<div>Keine Likes bisher</div><span>—</span>';
-      list.appendChild(li);
-      return;
-    }
+                if (likes.length === 0) {
+                    const li = document.createElement('li');
+                    li.innerHTML =
+                        '<div>Keine Likes bisher</div><span>—</span>';
+                    list.appendChild(li);
+                    return;
+                }
 
-    likes.forEach((e, idx) => {
-      const li = document.createElement('li');
-      li.innerHTML = `<div>${escapeHtml(e.title)} – ${escapeHtml(e.location)}</div><span>#${idx + 1}</span>`;
-      list.appendChild(li);
-    });
-  }
+                likes.forEach((e, idx) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<div style="font-weight:900">${escapeHtml(
+                        e.title,
+                    )} <span style="font-weight:700; opacity:.7">– ${escapeHtml(
+                        e.location,
+                    )}</span></div><span>#${idx + 1}</span>`;
+                    list.appendChild(li);
+                });
+            }
 
-  function closeLikes(silent = false) {
-    document.getElementById('likesView').style.display = 'none';
-    updateModalOpen();
-    if (!silent) console.info('Likes closed');
-  }
+            function closeLikes(silent = false) {
+                document.getElementById('likesView').style.display = 'none';
+                updateModalOpen();
+                if (!silent) console.info('Likes closed');
+            }
 
-  // ===== Chats =====
-  function openChats() {
-    const view = document.getElementById('chatsView');
-    view.style.display = 'flex';
-    updateModalOpen();
-    renderChatList();
-  }
+            // ===== Chats =====
+            function openChats() {
+                const view = document.getElementById('chatsView');
+                view.style.display = 'flex';
+                updateModalOpen();
+                renderChatList();
+            }
 
-  function closeChats(silent = false) {
-    document.getElementById('chatsView').style.display = 'none';
-    updateModalOpen();
-    if (!silent) console.info('Chats closed');
-  }
+            function closeChats(silent = false) {
+                document.getElementById('chatsView').style.display = 'none';
+                updateModalOpen();
+                if (!silent) console.info('Chats closed');
+            }
 
-  function renderChatList() {
-    const ul = document.getElementById('chatList');
-    ul.innerHTML = '';
+            function renderChatList() {
+                const ul = document.getElementById('chatList');
+                ul.innerHTML = '';
 
-    const unique = Array.from(new Set(likes.map(e => e.id)));
+                const unique = Array.from(new Set(likes.map((e) => e.id)));
 
-    if (unique.length === 0) {
-      const li = document.createElement('li');
-      li.className = 'empty';
-      li.style.listStyle = 'none';
-      li.textContent = 'Noch keine Chats. Like ein Event (❤️), dann erscheint hier eine Gruppe.';
-      ul.appendChild(li);
-      return;
-    }
+                if (unique.length === 0) {
+                    const li = document.createElement('li');
+                    li.className = 'empty';
+                    li.style.listStyle = 'none';
+                    li.textContent =
+                        'Noch keine Chats. Like ein Event, dann erscheint hier eine Gruppe.';
+                    ul.appendChild(li);
+                    return;
+                }
 
-    unique.slice().reverse().forEach(eventId => {
-      const chat = chats[eventId];
-      if (!chat) return;
-      const last = chat.messages[chat.messages.length - 1];
+                unique
+                    .slice()
+                    .reverse()
+                    .forEach((eventId) => {
+                        const chat = chats[eventId];
+                        if (!chat) return;
+                        const last = chat.messages[chat.messages.length - 1];
 
-      const li = document.createElement('li');
-      li.className = 'chat-item';
-      li.onclick = () => openChatThread(eventId);
+                        const li = document.createElement('li');
+                        li.className = 'chat-item';
+                        li.onclick = () => openChatThread(eventId);
 
-      li.innerHTML = `
+                        li.innerHTML = `
         <div class="avatar">${escapeHtml(initials(chat.title))}</div>
         <div class="chat-meta">
           <div class="chat-top">
@@ -792,172 +1361,218 @@ Status: (noch nicht implementiert)`);
         </div>
       `;
 
-      ul.appendChild(li);
-    });
-  }
+                        ul.appendChild(li);
+                    });
+            }
 
-  function openChatThread(eventId) {
-    activeChatId = eventId;
-    const view = document.getElementById('chatThreadView');
-    view.style.display = 'flex';
-    updateModalOpen();
+            function openChatThread(eventId) {
+                activeChatId = eventId;
+                const view = document.getElementById('chatThreadView');
+                view.style.display = 'flex';
+                updateModalOpen();
 
-    const chat = chats[eventId];
-    document.getElementById('chatThreadTitle').textContent = chat ? chat.title : 'Chat';
+                const chat = chats[eventId];
+                document.getElementById('chatThreadTitle').textContent = chat
+                    ? chat.title
+                    : 'Chat';
 
-    renderChatThread();
+                renderChatThread();
 
-    const input = document.getElementById('chatInput');
-    input.value = '';
-    input.focus();
-  }
+                const input = document.getElementById('chatInput');
+                input.value = '';
+                input.focus();
+            }
 
-  function backToChatList() {
-    closeChatThread(true);
-    openChats();
-  }
+            function backToChatList() {
+                closeChatThread(true);
+                openChats();
+            }
 
-  function closeChatThread(silent = false) {
-    document.getElementById('chatThreadView').style.display = 'none';
-    updateModalOpen();
-    if (!silent) console.info('Thread closed');
-  }
+            function closeChatThread(silent = false) {
+                document.getElementById('chatThreadView').style.display =
+                    'none';
+                updateModalOpen();
+                if (!silent) console.info('Thread closed');
+            }
 
-  function renderChatThread() {
-    const body = document.getElementById('chatThreadBody');
-    body.innerHTML = '';
+            function renderChatThread() {
+                const body = document.getElementById('chatThreadBody');
+                body.innerHTML = '';
 
-    const chat = chats[activeChatId];
-    if (!chat) {
-      const div = document.createElement('div');
-      div.className = 'empty';
-      div.textContent = 'Chat nicht gefunden.';
-      body.appendChild(div);
-      return;
-    }
+                const chat = chats[activeChatId];
+                if (!chat) {
+                    const div = document.createElement('div');
+                    div.className = 'empty';
+                    div.textContent = 'Chat nicht gefunden.';
+                    body.appendChild(div);
+                    return;
+                }
 
-    const participants = chat.participants || [];
-    const nameById = Object.fromEntries(participants.map(p => [p.id, p.name]));
+                const participants = chat.participants || [];
+                const nameById = Object.fromEntries(
+                    participants.map((p) => [p.id, p.name]),
+                );
 
-    chat.messages.forEach(m => {
-      const isMe = m.senderId === 'me';
-      const row = document.createElement('div');
-      row.className = `msg-row ${isMe ? 'me' : 'them'}`;
+                chat.messages.forEach((m) => {
+                    const isMe = m.senderId === 'me';
+                    const row = document.createElement('div');
+                    row.className = `msg-row ${isMe ? 'me' : 'them'}`;
 
-      const avatar = document.createElement('div');
-      avatar.className = 'msg-avatar';
+                    const avatar = document.createElement('div');
+                    avatar.className = 'msg-avatar';
 
-      const displayName = nameById[m.senderId] || (isMe ? 'Du' : 'Person');
-      avatar.textContent = String(displayName)
-        .trim()
-        .split(' ')
-        .filter(Boolean)
-        .slice(0, 2)
-        .map(w => (w[0] ? w[0].toUpperCase() : ''))
-        .join('');
+                    const displayName =
+                        nameById[m.senderId] || (isMe ? 'Du' : 'Person');
+                    avatar.textContent = String(displayName)
+                        .trim()
+                        .split(' ')
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((w) => (w[0] ? w[0].toUpperCase() : ''))
+                        .join('');
 
-      const bubble = document.createElement('div');
-      bubble.className = 'msg-bubble';
+                    const bubble = document.createElement('div');
+                    bubble.className = 'msg-bubble';
 
-      const nameLine = !isMe
-        ? `<div class="msg-name">${escapeHtml(displayName)}</div>`
-        : '';
+                    const nameLine = !isMe
+                        ? `<div class="msg-name">${escapeHtml(
+                              displayName,
+                          )}</div>`
+                        : '';
 
-      bubble.innerHTML = `
-        ${nameLine}
-        <div>${escapeHtml(m.text)}</div>
-        <div class="msg-meta">${escapeHtml(m.ts || '')}</div>
-      `;
+                    bubble.innerHTML = `
+  ${nameLine}
+  <div class="msg-text">
+    ${escapeHtml(m.text)}
+    <span class="msg-meta">${escapeHtml(m.ts || '')}</span>
+  </div>
+`;
 
-      // Avatar neben der Bubble (Gruppenchat-Feeling)
-      if (isMe) {
-        row.appendChild(bubble);
-        row.appendChild(avatar);
-      } else {
-        row.appendChild(avatar);
-        row.appendChild(bubble);
-      }
+                    if (isMe) {
+                        row.appendChild(bubble);
+                        row.appendChild(avatar);
+                    } else {
+                        row.appendChild(avatar);
+                        row.appendChild(bubble);
+                    }
 
-      body.appendChild(row);
-    });
+                    body.appendChild(row);
+                });
 
-    body.scrollTop = body.scrollHeight;
-  }
+                body.scrollTop = body.scrollHeight;
+            }
 
-  function sendMessage() {
-    const input = document.getElementById('chatInput');
-    const text = input.value.trim();
-    if (!text) return;
+            function sendMessage() {
+                const input = document.getElementById('chatInput');
+                const text = input.value.trim();
+                if (!text) return;
 
-    const chat = chats[activeChatId];
-    if (!chat) return;
+                const chat = chats[activeChatId];
+                if (!chat) return;
 
-    chat.messages.push({ senderId: 'me', text, ts: nowTime() });
+                chat.messages.push({senderId: 'me', text, ts: nowTime()});
 
-    // Dummy Auto-Reply von einer random Person (nicht "Orga")
-    const others = (chat.participants || []).filter(p => p.id !== 'me');
-    const pick = others[Math.floor(Math.random() * others.length)] || { id: 'mira', name: 'Mira' };
+                const others = (chat.participants || []).filter(
+                    (p) => p.id !== 'me',
+                );
+                const pick = others[
+                    Math.floor(Math.random() * others.length)
+                ] || {id: 'mira', name: 'Mira'};
 
-    window.setTimeout(() => {
-      const replies = [
-        'Nice! 👍',
-        'Ich freu mich schon 😄',
-        'Wollen wir vorher kurz treffen?',
-        'Ich check mal die Uhrzeit und sag gleich Bescheid.'
-      ];
-      chat.messages.push({ senderId: pick.id, text: replies[Math.floor(Math.random() * replies.length)], ts: nowTime() });
-      renderChatThread();
-      renderChatList();
-    }, 450);
+                window.setTimeout(() => {
+                    const replies = [
+                        'Nice! 👍',
+                        'Ich freu mich schon 😄',
+                        'Wollen wir vorher kurz treffen?',
+                        'Ich check mal die Uhrzeit und sag gleich Bescheid.',
+                    ];
+                    chat.messages.push({
+                        senderId: pick.id,
+                        text: replies[
+                            Math.floor(Math.random() * replies.length)
+                        ],
+                        ts: nowTime(),
+                    });
+                    renderChatThread();
+                    renderChatList();
+                }, 450);
 
-    input.value = '';
-    renderChatThread();
-    renderChatList();
-  }
+                input.value = '';
+                renderChatThread();
+                renderChatList();
+            }
 
-  // Enter = senden (nur wenn Thread offen)
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && document.getElementById('chatThreadView').style.display === 'flex') {
-      sendMessage();
-    }
-  });
+            // Enter = senden (nur wenn Thread offen)
+            document.addEventListener('keydown', (e) => {
+                if (
+                    e.key === 'Enter' &&
+                    document.getElementById('chatThreadView').style.display ===
+                        'flex'
+                ) {
+                    sendMessage();
+                }
+            });
 
-  // ===== Mini-Tests =====
-  function runTests() {
-    console.group('Finder tests');
+            // ===== Mini-Tests =====
+            function runTests() {
+                console.group('Finder tests');
 
-    console.assert(Array.isArray(events), 'events should be an array');
-    console.assert(events.length >= 6, 'should have at least 6 dummy events');
+                console.assert(
+                    Array.isArray(events),
+                    'events should be an array',
+                );
+                console.assert(
+                    events.length >= 6,
+                    'should have at least 6 dummy events',
+                );
 
-    // Like creates chat
-    currentIndex = 0;
-    swipe('right');
-    console.assert(likes.length === 1, 'liking should add to likes');
-    console.assert(Object.keys(chats).length === 1, 'liking should create a chat group');
+                // Like creates chat
+                currentIndex = 0;
+                swipe('right');
+                console.assert(
+                    likes.length === 1,
+                    'liking should add to likes',
+                );
+                console.assert(
+                    Object.keys(chats).length === 1,
+                    'liking should create a chat group',
+                );
 
-    // Chats list shows item
-    openChats();
-    const items = document.querySelectorAll('#chatList .chat-item');
-    console.assert(items.length >= 1, 'chat list should show a group');
+                // Chats list shows item
+                openChats();
+                const items = document.querySelectorAll('#chatList .chat-item');
+                console.assert(
+                    items.length >= 1,
+                    'chat list should show a group',
+                );
 
-    // Thread shows messages
-    openChatThread(likes[0].id);
-    const bubbles = document.querySelectorAll('#chatThreadBody .msg-bubble');
-    console.assert(bubbles.length >= 3, 'thread should show fake messages');
+                // Thread shows messages
+                openChatThread(likes[0].id);
+                const bubbles = document.querySelectorAll(
+                    '#chatThreadBody .msg-bubble',
+                );
+                console.assert(
+                    bubbles.length >= 3,
+                    'thread should show fake messages',
+                );
 
-    // Avatare sollten sichtbar sein
-    const avatars = document.querySelectorAll('#chatThreadBody .msg-avatar');
-    console.assert(avatars.length >= 3, 'thread should show avatars for messages');
+                // Avatare sollten sichtbar sein
+                const avatars = document.querySelectorAll(
+                    '#chatThreadBody .msg-avatar',
+                );
+                console.assert(
+                    avatars.length >= 3,
+                    'thread should show avatars for messages',
+                );
 
-    // Cleanup
-    resetApp();
+                // Cleanup
+                resetApp();
 
-    console.groupEnd();
-  }
+                console.groupEnd();
+            }
 
-  renderCard();
-  runTests();
-</script>
-
-</body>
+            renderCard();
+            runTests();
+        </script>
+    </body>
 </html>
